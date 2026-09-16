@@ -1,3 +1,5 @@
+package com.yourdomain.throttlingapp
+
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
