@@ -5,4 +5,5 @@
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="100"
+    android:settingsActivity="com.yourdomain.throttlingapp.VpnPrepareActivity"
     android:description="@string/accessibility_description" />

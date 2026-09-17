@@ -15,11 +15,26 @@ class ProtectionAccessibilityService : AccessibilityService() {
         Log.i(TAG, "ProtectionAccessibilityService connected and actively listening.")
     }
 
+    private val targetSettingsPackages = setOf(
+        "com.android.settings",
+        "com.coloros.safecenter",
+        "com.oplus.safecenter",
+        "com.nearme.romupdate"
+    )
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
         val packageName = event.packageName?.toString() ?: return
 
+        if (targetSettingsPackages.contains(packageName)) {
+            val rootNode = rootInActiveWindow ?: return
+            if (isAttemptingTamper(rootNode)) {
+                Log.w(TAG, "Tamper attempt blocked! Sending to HOME.")
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }
+        }
+        
         // Intercept when user is inside system Settings
         if (packageName == settingsPackageName) {
             Log.d(TAG, "Settings event detected: eventType=${event.eventType}, className=${event.className}")
@@ -41,6 +56,17 @@ class ProtectionAccessibilityService : AccessibilityService() {
         // 1. Check if user opened App Info or Settings page referencing this app
         val appMatches = node.findAccessibilityNodeInfosByText(myAppName)
         Log.d(TAG, "Searching for app name '$myAppName': found ${appMatches.size} node(s).")
+
+        // Catch common uninstall/force-stop text variations across ROMs
+        val keywords = listOf("Uninstall", "Force stop", "Disable", "Remove", "App info", "Accessibility")
+        
+        for (keyword in keywords) {
+            val matches = node.findAccessibilityNodeInfosByText(keyword)
+            if (matches.isNotEmpty() && appMatches.isNotEmpty()) {
+                Log.w(TAG, "Matched keyword '$keyword' alongside app name. Blocking access.")
+                return true
+            }
+        }
 
         if (appMatches.isNotEmpty()) {
             Log.i(TAG, "App match found for '$myAppName'. Evaluating specific tamper criteria...")
