@@ -1,0 +1,46 @@
+{
+  "sham": {
+    "throttled_apps": [
+      {
+        "package_name": "com.instagram.android",
+        "speed_limit_kbps": 32
+      },
+    ]
+  },
+  "sanchit": {
+    "throttled_apps": [
+      {
+        "package_name": "com.instagram.android",
+        "speed_limit_kbps": 64
+      },
+      {
+        "package_name": "com.garena.game.ffi",
+        "speed_limit_kbps": 64
+      },
+    ]
+  },
+  "preeti": {
+    "throttled_apps": [
+      {
+        "package_name": "com.instagram.android",
+        "speed_limit_kbps": 64
+      },
+      {
+        "package_name": "com.garena.game.ffi",
+        "speed_limit_kbps": 64
+      },
+    ]
+  },
+  "sanjeev": {
+    "throttled_apps": [
+      {
+        "package_name": "com.instagram.android",
+        "speed_limit_kbps": 64
+      },
+      {
+        "package_name": "com.garena.game.ffi",
+        "speed_limit_kbps": 64
+      },
+    ]
+  },
+}

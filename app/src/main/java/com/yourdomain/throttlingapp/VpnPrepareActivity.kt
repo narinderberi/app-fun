@@ -1,32 +1,46 @@
 package com.yourdomain.throttlingapp
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
 class VpnPrepareActivity : AppCompatActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        val intent = VpnService.prepare(this)
-        if (intent != null) {
-            // Permission needed: trigger the system VPN permission dialog
-            startActivityForResult(intent, REQUEST_CODE_VPN)
-        } else {
-            // Already prepared: start service directly and close
+    private val vpnPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
             startVpnService()
+            hideAppIconAndFinish()
+        } else {
             finish()
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_CODE_VPN && resultCode == RESULT_OK) {
-            startVpnService()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Save device canonical name passed via ADB
+        intent?.getStringExtra("DEVICE_NAME")?.let { deviceName ->
+            val prefs = getSharedPreferences("AppConfigPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("canonical_device_name", deviceName).apply()
         }
-        finish()
+
+        // Schedule periodic WorkManager task (24h config fetch)
+        ConfigWorker.schedulePeriodicSync(this)
+
+        val intent = VpnService.prepare(this)
+        if (intent != null) {
+            vpnPermissionLauncher.launch(intent)
+        } else {
+            startVpnService()
+            hideAppIconAndFinish()
+        }
     }
 
     private fun startVpnService() {
@@ -34,7 +48,13 @@ class VpnPrepareActivity : AppCompatActivity() {
         startForegroundService(serviceIntent)
     }
 
-    companion object {
-        private const val REQUEST_CODE_VPN = 1001
+    private fun hideAppIconAndFinish() {
+        val componentName = ComponentName(this, VpnPrepareActivity::class.java)
+        packageManager.setComponentEnabledSetting(
+            componentName,
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP
+        )
+        finish()
     }
 }
