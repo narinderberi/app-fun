@@ -4,7 +4,7 @@
       {
         "package_name": "com.instagram.android",
         "speed_limit_kbps": 32
-      },
+      }
     ]
   },
   "sanchit": {
@@ -16,7 +16,7 @@
       {
         "package_name": "com.garena.game.ffi",
         "speed_limit_kbps": 64
-      },
+      }
     ]
   },
   "preeti": {
@@ -28,7 +28,7 @@
       {
         "package_name": "com.garena.game.ffi",
         "speed_limit_kbps": 64
-      },
+      }
     ]
   },
   "sanjeev": {
@@ -40,7 +40,7 @@
       {
         "package_name": "com.garena.game.ffi",
         "speed_limit_kbps": 64
-      },
+      }
     ]
-  },
+  }
 }
