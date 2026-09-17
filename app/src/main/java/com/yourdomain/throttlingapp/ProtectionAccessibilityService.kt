@@ -19,7 +19,14 @@ class ProtectionAccessibilityService : AccessibilityService() {
         "com.android.settings",
         "com.coloros.safecenter",
         "com.oplus.safecenter",
-        "com.nearme.romupdate"
+        "com.android.settings",
+        "com.coloros.safecenter",
+        "com.oplus.safecenter",
+        "com.nearme.romupdate",
+        "com.oppo.launcher",       // Oppo / ColorOS Launcher
+        "com.android.launcher3",   // Stock / Generic Android Launcher
+        "com.google.android.apps.nexuslauncher", // Pixel Launcher
+        "android"                  // System confirmation dialogs
     )
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -68,6 +75,16 @@ class ProtectionAccessibilityService : AccessibilityService() {
             }
         }
 
+        // Match exact phrases used in system confirmation dialogs
+        val uninstallDialogText = node.findAccessibilityNodeInfosByText("Do you want to uninstall this app?")
+        val genericUninstall = node.findAccessibilityNodeInfosByText("Uninstall")
+
+        if (uninstallDialogText.isNotEmpty() || (appMatches.isNotEmpty() && genericUninstall.isNotEmpty())) {
+            Log.w(TAG, "Uninstall prompt detected for Oppo Security!")
+            return true
+        }
+
+        // Next
         if (appMatches.isNotEmpty()) {
             Log.i(TAG, "App match found for '$myAppName'. Evaluating specific tamper criteria...")
 

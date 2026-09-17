@@ -48,7 +48,7 @@ class VpnPrepareActivity : AppCompatActivity() {
 
         // Schedule periodic WorkManager task (24h config fetch)
         Log.d(TAG, "Initializing ConfigWorker scheduling...")
-        ConfigWorker.schedulePeriodicSync(this)
+        ConfigWorker.scheduleSync(this)
 
         val vpnIntent = VpnService.prepare(this)
         if (vpnIntent != null) {

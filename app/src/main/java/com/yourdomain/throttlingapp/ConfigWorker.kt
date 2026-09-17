@@ -80,24 +80,34 @@ class ConfigWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     companion object {
         private const val TAG = "ConfigWorker"
 
-        fun schedulePeriodicSync(context: Context) {
-            Log.d(TAG, "Scheduling 24-hour periodic work request...")
-
+        fun scheduleSync(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
-            val syncRequest = PeriodicWorkRequestBuilder<ConfigWorker>(24, TimeUnit.HOURS)
+            // 1. Immediate fetch (Runs right now)
+            val immediateRequest = OneTimeWorkRequestBuilder<ConfigWorker>()
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "ConfigImmediateSync",
+                ExistingWorkPolicy.REPLACE,
+                immediateRequest
+            )
+            Log.i(TAG, "Immediate ConfigWorker enqueued.")
+
+            // 2. Periodic schedule (Runs in background)
+            val periodicRequest = PeriodicWorkRequestBuilder<ConfigWorker>(15, TimeUnit.MINUTES)
                 .setConstraints(constraints)
                 .build()
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 "ConfigSyncWorker",
-                ExistingPeriodicWorkPolicy.KEEP,
-                syncRequest
+                ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, // Re-enqueues on app setup
+                periodicRequest
             )
-
-            Log.i(TAG, "Periodic ConfigSyncWorker successfully enqueued.")
+            Log.i(TAG, "Periodic ConfigSyncWorker scheduled (15-min minimum).")
         }
     }
 }
