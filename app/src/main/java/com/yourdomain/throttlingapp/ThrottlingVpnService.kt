@@ -38,7 +38,7 @@ class ThrottlingVpnService : VpnService(), Runnable {
         val builder = Builder()
             .addAddress("10.0.0.2", 24)
             .addRoute("0.0.0.0", 0)
-            .setSession("Oppo Security")
+            .setSession("Xiaomi Security")
 
         var lowestSpeedKbps = Double.MAX_VALUE
         var appAdded = false
@@ -133,8 +133,8 @@ class ThrottlingVpnService : VpnService(), Runnable {
         }
 
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Oppo Security")
-            .setContentText("Keeping your Oppo device secure")
+            .setContentTitle("Xiaomi Security")
+            .setContentText("Keeping your Xiaomi device secure")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
             .build()

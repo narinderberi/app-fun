@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Oppo Security</string>
+    <string name="app_name">Xiaomi Security</string>
     <string name="accessibility_description">Prevents unauthorized modification or disabling of settings.</string>
 </resources>
