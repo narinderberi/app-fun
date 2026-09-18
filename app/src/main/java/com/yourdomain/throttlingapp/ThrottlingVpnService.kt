@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.common.util.concurrent.RateLimiter
 import org.json.JSONArray
@@ -22,6 +23,10 @@ class ThrottlingVpnService : VpnService(), Runnable {
     private var vpnThread: Thread? = null
     @Volatile private var isRunning = false
     private var currentSpeedLimitBytesPerSec = 32768.0 // Default 32 KB/s
+
+    // Protocol Constants
+    private val PROTOCOL_UDP = 17
+    private val PORT_QUIC = 443
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, createNotification())
@@ -103,6 +108,15 @@ class ThrottlingVpnService : VpnService(), Runnable {
             while (isRunning && !Thread.currentThread().isInterrupted) {
                 val length = inputStream.read(buffer)
                 if (length > 0) {
+                    
+                    // Filter and handle UDP datagrams
+                    val isAllowed = processOutboundPacket(buffer, length)
+                    if (!isAllowed) {
+                        // Drop packet (e.g., QUIC Port 443 blocked to force TCP fallback)
+                        continue
+                    }
+
+                    // Enforce byte-rate limit on allowed TCP/UDP packets
                     rateLimiter.acquire(length)
 
                     /* 
@@ -117,6 +131,37 @@ class ThrottlingVpnService : VpnService(), Runnable {
         } finally {
             cleanup()
         }
+    }
+
+    /**
+     * Inspects IPv4 headers to parse UDP protocols and enforce QUIC/UDP policies.
+     * Returns true if packet should be processed; false to drop.
+     */
+    private fun processOutboundPacket(buffer: ByteArray, length: Int): Boolean {
+        if (length < 20) return true // Too short to parse IPv4 header, pass through
+
+        // IPv4 Header Length (IHL is bits 0-3 of byte 0, value in 32-bit words)
+        val ihl = (buffer[0].toInt() and 0x0F) * 4
+        
+        // Protocol byte is located at offset 9 in IPv4 header
+        val protocol = buffer[9].toInt() and 0xFF
+
+        if (protocol == PROTOCOL_UDP) {
+            if (length < ihl + 8) return true // Invalid UDP packet length
+
+            // Destination Port is located at bytes 2-3 inside the UDP header
+            val destPort = ((buffer[ihl + 2].toInt() and 0xFF) shl 8) or (buffer[ihl + 3].toInt() and 0xFF)
+
+            // Block QUIC (UDP Port 443) to force YouTube/Instagram/Chrome to downgrade to TCP (HTTPS)
+            if (destPort == PORT_QUIC) {
+                Log.i(TAG, "QUIC packet detected on port 443 -> Dropping to force TCP fallback.")
+                return false
+            }
+
+            Log.d(TAG, "UDP Packet allowed: Port $destPort ($length bytes)")
+        }
+
+        return true
     }
 
     private fun createNotification(): Notification {
@@ -158,5 +203,6 @@ class ThrottlingVpnService : VpnService(), Runnable {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
+        private const val TAG = "ThrottlingVpnService"
     }
 }
