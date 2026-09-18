@@ -38,7 +38,7 @@ class ThrottlingVpnService : VpnService(), Runnable {
         val builder = Builder()
             .addAddress("10.0.0.2", 24)
             .addRoute("0.0.0.0", 0)
-            .setSession("ThrottleVPN")
+            .setSession("Oppo Security")
 
         var lowestSpeedKbps = Double.MAX_VALUE
         var appAdded = false
